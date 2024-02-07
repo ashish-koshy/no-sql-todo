@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "ts-node": "ts-node",
-    "cosmos": "nodemon src/db/cosmos.ts",
     "define": "ts-node src/define.ts",
-    "start": "nodemon src/app.ts"
+    "start-cosmos": "nodemon src/app-cosmos.ts",
+    "start-mongo": "nodemon src/app-mongo.ts"
   },
   "author": "",
   "license": "ISC",
