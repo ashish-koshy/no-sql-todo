@@ -1,4 +1,4 @@
-import { CollectionMeta } from "./zeus/collection";
+import { CollectionMeta } from "./collection";
 
 /** 
  * Generic Type to interface with various 

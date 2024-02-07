@@ -2,6 +2,9 @@ import { env } from '../env';
 import { CosmosClient, Database, OperationInput } from '@azure/cosmos';
 import { getDbMeta } from './meta-data';
 
+import * as fs from 'fs-extra';
+import * as readline from 'readline';
+
 const singleTon: {
     client: CosmosClient | undefined 
 } = {
@@ -113,11 +116,55 @@ export const cosmos = {
                     '|', 'Status', 
                     response?.statusCode || 'n/a'
                 );
-                response?.statusCode === 201 
+                `${response?.statusCode}`.startsWith('2') 
                     && (await cosmos?.seed(db, collection));
             }
         } catch (err: any) {
             console.log(err);
         }
+    },
+    importFromJsonFile: (
+        db: Database | undefined,
+        jsonPath: string, 
+        collection: string
+    ) => {
+        const readStream = fs.createReadStream(jsonPath, 'utf-8');
+        const rl = readline.createInterface({
+            input: readStream,
+            crlfDelay: Infinity
+        });
+
+        let isFirstLine = true;
+        let operations: OperationInput[] = [];
+
+        rl.on('line', async (line) => {
+            if (isFirstLine) {
+              isFirstLine = false;
+              return;
+            }
+          
+            if (line.trim() === ']') return;
+            const sanitizedLine = line.replace(/,\s*$/, '').trim();
+          
+            try {
+                if (operations.length < 100)
+                    operations.push({
+                            operationType: 'Create',
+                            resourceBody: JSON.parse(sanitizedLine),
+                        } as OperationInput
+                    );
+
+                if (operations.length === 100) {
+                    await db?.container(`${collection}`).items.bulk(operations);
+                    operations.length = 0;
+                    operations = [];
+                }
+             } catch (err) {
+              console.error('Error parsing JSON:', err);
+            }
+        });
+
+        rl.on('close', () => console.log('Finished reading the file'));
+        readStream.on('error', (error) => console.error('Error reading the file:', error));
     },
 };

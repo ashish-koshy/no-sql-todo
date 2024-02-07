@@ -6,25 +6,26 @@ import { cosmos } from './db/cosmos';
     try {
         const dbName = env['DB_NAME'];
 
-        const customer = 'customer';
-        const mongoDb = await mongo.getDb(dbName);
-
-        const mongoCustomerCollection = await mongoDb?.collection(customer);
-        console.log(await mongoCustomerCollection?.findOne({ email: 'bob@example.com' }));
-
+        const collection = 'return';
         const cosmosDb = await cosmos.getDb(dbName);
-        const cosmosCustomerCollection = await cosmosDb?.container(customer);
-        const querySpec = {
-            query: 'SELECT * FROM customer WHERE customer.email = @email',
-            parameters: [
-              {
-                name: '@email',
-                value: 'alice@example.com'
-              }
-            ]
-        };
-        const response = await cosmosCustomerCollection?.items.query(querySpec).fetchAll();
-        response?.resources?.length && console.log(response.resources.pop());
+
+        await cosmos.drop(dbName);
+        await cosmos.build(dbName);
+        const jsonPath = './input/WC-Returns.json';
+        cosmos.importFromJsonFile(cosmosDb, jsonPath, collection);
+
+        // const records = await cosmosDb?.container(collection);
+        // const querySpec = {
+        //     query: 'SELECT * FROM return WHERE return.TaxReturnGuid = @TaxReturnGuid',
+        //     parameters: [
+        //       {
+        //         name: '@TaxReturnGuid',
+        //         value: '527002BA-3EEF-4CB4-9671-C3AF61E46D52'
+        //       }
+        //     ]
+        // };
+        // const response = await records?.items.query(querySpec).fetchAll();
+        // response?.resources?.length && console.log(response.resources.pop());
 
     } catch (e) {
         console.error(e);

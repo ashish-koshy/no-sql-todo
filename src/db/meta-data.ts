@@ -1,4 +1,5 @@
-import { DbMeta } from '../types/zeus/collection';
+import { DbMeta } from '../types/collection';
+import { TaxCollection } from '../types/tax';
 import { ZeusCollection } from '../types/zeus';
 
 /** This fake data was generated using GPT-4 */
@@ -186,8 +187,24 @@ const zeusCollectionMeta: ZeusCollection = {
   ]
 };
 
+/** This fake data was generated using GPT-4 */
+const taxCollectionMeta: TaxCollection = {
+  return: [
+    {
+      id: 'E873173C-3966-4786-A197-8149EAAC7E40',
+      client_first_nm: 'fname',
+      client_last_nm: 'lname',
+      office_gl_dept_id: '8888',
+      taxpro_psft_id: 'A406309',
+      client_phone_no: '5655665566',
+      email_address: 'jane@doe.com'
+    },
+  ],
+};
+
 const dbMeta: DbMeta = {
-  'zeus': zeusCollectionMeta
+  'zeus': zeusCollectionMeta,
+  'tax': taxCollectionMeta,
 }
 
 /** 

@@ -2,6 +2,9 @@ import { env } from '../env';
 import { getDbMeta } from './meta-data';
 import { MongoClient, Db, OptionalId } from 'mongodb';
 
+import * as fs from 'fs-extra';
+import * as readline from 'readline';
+
 export const mongo = {
     getClient :(
         dbUrl: string = env['MONGO_URL']
@@ -102,6 +105,39 @@ export const mongo = {
         } finally {
             await mongo.close();
         }
+    },
+    importFromJsonFile: (
+        db: Db | undefined,
+        jsonPath: string, 
+        collection: string
+    ) => {
+        const readStream = fs.createReadStream(jsonPath, 'utf-8');
+        const rl = readline.createInterface({
+            input: readStream,
+            crlfDelay: Infinity
+        });
+
+        let isFirstLine = true;
+
+        rl.on('line', async (line) => {
+            if (isFirstLine) {
+              isFirstLine = false;
+              return;
+            }
+          
+            if (line.trim() === ']') return;
+            const sanitizedLine = line.replace(/,\s*$/, '').trim();
+          
+            try {
+              const jsonObject = JSON.parse(sanitizedLine);
+              await db?.collection(collection).insertOne(jsonObject);
+            } catch (err) {
+              console.error('Error parsing JSON:', err);
+            }
+        });
+
+        rl.on('close', () => console.log('Finished reading the file'));
+        readStream.on('error', (error) => console.error('Error reading the file:', error));
     },
     close: async() => {
         await mongo.getClient()?.close()

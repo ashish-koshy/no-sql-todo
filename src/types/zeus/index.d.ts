@@ -5,7 +5,7 @@ import { Batch } from './batch';
 import { Stock } from './stock';
 import { Purchase } from './purchase';
 import { Test } from './test';
-import { CollectionMeta } from './collection';
+import { CollectionMeta } from '../collection';
 
 export type ZeusCollection = { 
     supplier: Supplier[],
