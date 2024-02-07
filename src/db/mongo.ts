@@ -1,20 +1,12 @@
 import { env } from '../env';
 import { getDbMeta } from './meta-data';
-import { MongoClient, Db, OptionalId, Collection } from 'mongodb';
-
-const singleTon: {
-    client: MongoClient | undefined 
-} = {
-    client: undefined
-};
+import { MongoClient, Db, OptionalId } from 'mongodb';
 
 export const mongo = {
     getClient :(
         dbUrl: string = env['MONGO_URL']
     ): MongoClient => {
-        if (!singleTon.client) 
-            singleTon.client = new MongoClient(dbUrl)
-        return singleTon.client;
+        return new MongoClient(dbUrl);
     },
     getConnection : async (): Promise<MongoClient | undefined> => {
         try {
@@ -53,7 +45,7 @@ export const mongo = {
             const collections = await mongo.getAllCollections(db);
             for (const collection of collections) {
                 const dropped = (await db?.dropCollection(collection));
-                console.log('Collection', collection, '- Has been dropped...');
+                console.log('Collection', collection, 'dropped');
             }
         } catch(e) {
             console.error(e);
@@ -82,7 +74,7 @@ export const mongo = {
             for (const collection in getDbMeta(dbName)) {
                 if (!collectionList.includes(collection)) {
                     await db?.createCollection(collection);
-                    console.log('Collection', `'${collection}'`, 'created...');
+                    console.log('Collection', `'${collection}'`, 'created');
                     await mongo?.seed(db, collection);
                 }
             }

@@ -3,7 +3,7 @@
     docker pull mongo
 
 ## Run a Docker container from the built image
-    docker run -d -p 27017:27017
+    docker run -d -p 27017:27017 mongo:latest
 
 #
 
