@@ -1,5 +1,5 @@
 export type Purchase = {
-    id: string,
+    purchaseId: string,
     customer_name: string,
     customer_email: string,
     product_name: string,

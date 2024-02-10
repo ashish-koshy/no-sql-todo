@@ -1,5 +1,5 @@
 export type Batch = {
-    id: string,
+    batchId: string,
     batch_number: string,
     product_name: string,
     manufacturing_date: string,

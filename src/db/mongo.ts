@@ -1,5 +1,5 @@
 import { env } from '../env';
-import { getDbMeta } from './meta-data';
+import { getDbMeta } from '../meta';
 import { MongoClient, Db, OptionalId } from 'mongodb';
 
 import * as fs from 'fs-extra';
@@ -95,7 +95,7 @@ export const mongo = {
             const dbName = db?.databaseName || '';
             if (!dbName) return
     
-            const seedData = (getDbMeta(dbName) || {})[collection] as OptionalId<Document[]> | undefined;
+            const seedData = (getDbMeta(dbName) || {})[collection]?.seedData as OptionalId<Document[]> | undefined;
             if (!seedData) return
     
             await db?.collection(collection).insertMany(seedData);

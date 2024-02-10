@@ -8,7 +8,7 @@ import { Test } from './test';
 import { CollectionMeta } from '../collection';
 
 export type ZeusCollection = { 
-    supplier: Supplier[],
+    supplier: CollectionMeta<Supplier[]>,
     customer: Customer[],
     product: Product[],
     batch: Batch[],
