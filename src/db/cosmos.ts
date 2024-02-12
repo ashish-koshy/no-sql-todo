@@ -45,25 +45,6 @@ export const cosmos = {
             return [];
         }
     },
-    bulk: async(
-        db: Database | undefined,
-        collection: string,
-        operations: OperationInput[],
-    ) => {
-        try {
-            const response = await db?.container(`${collection}`).items.bulk(operations);   
-            console.log(response?.length ? response[0] : '')
-            response?.length &&
-                console.log(
-                    'Bulk operation', 
-                    `'${collection}'`, 
-                    '|', 'Status', 
-                    response[0]?.statusCode || 'n/a'
-                );
-        } catch(e) {
-            console.error(e);
-        }
-    },
     drop: async (
         dbName: string = env['DB_NAME']
     ): Promise<void> => {
@@ -83,6 +64,24 @@ export const cosmos = {
             console.error(e);
         }
     },
+    bulk: async(
+        db: Database | undefined,
+        collection: string,
+        operations: OperationInput[],
+    ) => {
+        try {
+            const response = await db?.container(`${collection}`).items.bulk(operations);
+            response?.length &&
+                console.log(
+                    'Bulk operation', 
+                    `'${collection}'`, 
+                    '|', 'Status', 
+                    response[0]?.statusCode || 'n/a'
+                );
+        } catch(e) {
+            console.error(e);
+        }
+    },
     seed: async(
         db: Database | undefined,
         collection: string
@@ -97,13 +96,11 @@ export const cosmos = {
             const operations = meta?.seedData?.map(
                 resourceBody => {
                     return {
-                        partitionKey: meta?.partitionKey || '',
                         operationType: 'Create',
                         resourceBody,
                     } as CreateOperationInput
                 }
             );
-            console.log('\nWrite ready :', JSON.stringify(operations));
             await cosmos.bulk(db, collection, operations);
         } catch (err: any) {
             console.log(err);
@@ -138,8 +135,7 @@ export const cosmos = {
         db: Database | undefined,
         jsonPath: string, 
         collection: string,
-        partitionKey = 'id',
-        linesPerWrite = 50,
+        linesPerWrite = 60,
     ) => {
         const readStream = fs.createReadStream(jsonPath, 'utf-8');
         const readLine = readline.createInterface({
@@ -162,15 +158,13 @@ export const cosmos = {
             try {
                 operations.push(
                     {
-                        partitionKey,
                         operationType: 'Create',
                         resourceBody: JSON.parse(sanitizedLine),
                     }
                 );
-                if (operations.length >= linesPerWrite) {
+                if (operations.length >= linesPerWrite - 1) {
                     readLine.pause();
-                    console.log('\nWrite ready :', JSON.stringify(operations.splice(0, linesPerWrite)));
-                    // await cosmos.bulk(db, collection, operations.splice(0, linesPerWrite), true);
+                    await cosmos.bulk(db, collection, operations.splice(0, linesPerWrite));
                     readLine.resume();
                 }
             } catch (err) {
@@ -180,12 +174,11 @@ export const cosmos = {
 
         readLine.on('close', async() => {
             if (operations.length)
-                console.log('\nWrite ready :', JSON.stringify(operations.splice(0, linesPerWrite)));
-            // await cosmos.bulk(db, collection, operations.splice(0, linesPerWrite));
+                await cosmos.bulk(db, collection, operations.splice(0, linesPerWrite));
         });
 
         readStream.on('error', (error) => {
-            console.error('Error reading the file:', error)
+            console.error('Error reading the file:', error);
         });
     },
 };

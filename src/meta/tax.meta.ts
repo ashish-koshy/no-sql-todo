@@ -3,20 +3,14 @@ import { Return } from '../types/tax/return';
 import { v4 as uuidv4 } from 'uuid';
 
 const returns: CollectionMeta<Return[]> = {
-    partitionKey: 'TaxProId',
+    partitionKey: 'WorkId',
     seedData: [
         {
-            TaxProId : '1',
-            WorkFlowId : uuidv4(),
-            id : uuidv4(),
-            OfficeId : '00000',
+            WorkId : uuidv4(),
             FirstName : 'Jane',
             LastName : 'Doe',
             PhoneNumber : '0000000000',
-            EmailAddress : 'janeDoe@abc.com',
-            StatusId : 'NULL',
-            TypeId : 'NULL',
-            Ucid : 'NULL',
+            EmailAddress : 'janeDoe@abc.com'
         },
     ],
 };
