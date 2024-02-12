@@ -1,9 +1,7 @@
+import { getDbMeta } from './meta';
 import { mongo } from './db/mongo';
 import { cosmos } from './db/cosmos';
 import { GenericDb } from './types/db';
-import { getDbMeta } from './db/meta-data';
-
-// Following script is used to drop or build new databases.
 
 const getDbServer = (
     dbServer: string

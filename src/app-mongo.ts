@@ -8,8 +8,6 @@ import { mongo } from './db/mongo';
 
         const mongoDb = await mongo.getDb(dbName);
 
-        // await mongo.drop(dbName);
-        // await mongo.build(dbName);
         // const jsonPath = './input/WC-Returns.json';
         // mongo.importFromJsonFile(mongoDb, jsonPath, collection);
 

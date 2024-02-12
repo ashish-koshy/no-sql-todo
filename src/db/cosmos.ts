@@ -1,6 +1,6 @@
 import { env } from '../env';
-import { CosmosClient, Database, OperationInput } from '@azure/cosmos';
-import { getDbMeta } from './meta-data';
+import { CosmosClient, CreateOperationInput, Database, OperationInput } from '@azure/cosmos';
+import { getDbMeta } from '../meta';
 
 import * as fs from 'fs-extra';
 import * as readline from 'readline';
@@ -39,7 +39,7 @@ export const cosmos = {
         db: Database | undefined
     ) => {
         try {
-            return [];
+            return db?.id ? Object.keys(getDbMeta(db.id)) : [];
         } catch(err) {
             console.log(err);
             return [];
@@ -50,7 +50,7 @@ export const cosmos = {
     ): Promise<void> => {
         try {
             const db = await cosmos.getDb(dbName);
-            const collections = Object.keys(getDbMeta(dbName));
+            const collections = await cosmos.getAllCollections(db);
             for (const collection of collections) {
                 const response = await db?.container(collection)?.delete();
                 console.log(
@@ -64,6 +64,24 @@ export const cosmos = {
             console.error(e);
         }
     },
+    bulk: async(
+        db: Database | undefined,
+        collection: string,
+        operations: OperationInput[],
+    ) => {
+        try {
+            const response = await db?.container(`${collection}`).items.bulk(operations);
+            response?.length &&
+                console.log(
+                    'Bulk operation', 
+                    `'${collection}'`, 
+                    '|', 'Status', 
+                    response[0]?.statusCode || 'n/a'
+                );
+        } catch(e) {
+            console.error(e);
+        }
+    },
     seed: async(
         db: Database | undefined,
         collection: string
@@ -72,28 +90,18 @@ export const cosmos = {
             const dbName = db?.id || '';
             if (!dbName) return
     
-            let seedData = (getDbMeta(dbName) || {})[collection] as unknown[];
-            if (!seedData) return
+            const meta = (getDbMeta(dbName) || {})[collection];
+            if (!meta) return
     
-            const operations: OperationInput[] = seedData.map(
+            const operations = meta?.seedData?.map(
                 resourceBody => {
                     return {
                         operationType: 'Create',
                         resourceBody,
-                    } as OperationInput
+                    } as CreateOperationInput
                 }
             );
-    
-            const bulkOperation 
-                = await db?.container(`${collection}`).items.bulk(operations);
-    
-            const response = bulkOperation?.pop();
-            console.log(
-                'Seed collection', 
-                `'${collection}'`, 
-                '|', 'Status', 
-                response?.statusCode || 'n/a'
-            );
+            await cosmos.bulk(db, collection, operations);
         } catch (err: any) {
             console.log(err);
         }
@@ -104,11 +112,11 @@ export const cosmos = {
         try {
             const db = await cosmos.getDb(dbName);
 
-            const collections = Object.keys(getDbMeta(dbName));
-            for (const collection of collections) {
+            const collections = (getDbMeta(dbName) || {});
+            for (const collection in collections) {
                 const response = await db?.containers.createIfNotExists({
                     id: collection,
-                    partitionKey: `/id`,
+                    partitionKey: `/${collections[collection]?.partitionKey}` || '',
                 });
                 console.log(
                     'Create collection', 
@@ -126,18 +134,19 @@ export const cosmos = {
     importFromJsonFile: (
         db: Database | undefined,
         jsonPath: string, 
-        collection: string
+        collection: string,
+        linesPerWrite = 60,
     ) => {
         const readStream = fs.createReadStream(jsonPath, 'utf-8');
-        const rl = readline.createInterface({
+        const readLine = readline.createInterface({
             input: readStream,
             crlfDelay: Infinity
         });
 
         let isFirstLine = true;
-        let operations: OperationInput[] = [];
+        let operations: CreateOperationInput[] = [];
 
-        rl.on('line', async (line) => {
+        readLine.on('line', async (line) => {
             if (isFirstLine) {
               isFirstLine = false;
               return;
@@ -147,24 +156,29 @@ export const cosmos = {
             const sanitizedLine = line.replace(/,\s*$/, '').trim();
           
             try {
-                if (operations.length < 100)
-                    operations.push({
-                            operationType: 'Create',
-                            resourceBody: JSON.parse(sanitizedLine),
-                        } as OperationInput
-                    );
-
-                if (operations.length === 100) {
-                    await db?.container(`${collection}`).items.bulk(operations);
-                    operations.length = 0;
-                    operations = [];
+                operations.push(
+                    {
+                        operationType: 'Create',
+                        resourceBody: JSON.parse(sanitizedLine),
+                    }
+                );
+                if (operations.length >= linesPerWrite - 1) {
+                    readLine.pause();
+                    await cosmos.bulk(db, collection, operations.splice(0, linesPerWrite));
+                    readLine.resume();
                 }
-             } catch (err) {
+            } catch (err) {
               console.error('Error parsing JSON:', err);
             }
         });
 
-        rl.on('close', () => console.log('Finished reading the file'));
-        readStream.on('error', (error) => console.error('Error reading the file:', error));
+        readLine.on('close', async() => {
+            if (operations.length)
+                await cosmos.bulk(db, collection, operations.splice(0, linesPerWrite));
+        });
+
+        readStream.on('error', (error) => {
+            console.error('Error reading the file:', error);
+        });
     },
 };

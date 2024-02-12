@@ -1,7 +1,13 @@
+
 export type CollectionMeta<T> = { 
-  [collection: string]: T
+  partitionKey: string,
+  seedData: T;
+};
+
+export type CollectionList = { 
+  [collection: string]: CollectionMeta<unknown[]>
 };
 
 export type DbMeta = { 
-  [db: string]: CollectionMeta<unknown>
+  [db: string]: CollectionList
 };
